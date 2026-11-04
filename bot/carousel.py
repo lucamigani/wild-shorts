@@ -133,15 +133,16 @@ def by_id(photo_id, path):
     time.sleep(0.8)
     r = requests.get(PIXABAY, timeout=30, params={"key": os.environ["PIXABAY_API_KEY"], "id": photo_id})
     r.raise_for_status()
-    data = requests.get(r.json()["hits"][0]["largeImageURL"], timeout=60)
-    data.raise_for_status()
-    path.write_bytes(data.content)
+    pic = thumbnail({"largeImageURL": r.json()["hits"][0]["largeImageURL"]})
+    if pic is None:
+        raise RuntimeError(f"Photo {photo_id} failed")
+    pic.save(path, quality=95)
     return path
 
 
 def thumbnail(hit):
     """Return a picture, or None so one bad download doesn't lose the sheet."""
-    for url in (hit.get("webformatURL"), hit.get("largeImageURL")):
+    for url in filter(None, (hit.get("webformatURL"), hit.get("largeImageURL"))):
         for attempt in range(3):
             time.sleep(0.3 + attempt)
             try:
