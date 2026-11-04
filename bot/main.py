@@ -7,7 +7,7 @@ import sys
 import tempfile
 import time
 
-from . import content, footage, render, story
+from . import content, footage, guide, render, story
 from .channels import Instagram, Telegram
 
 STATE = pathlib.Path("state/state.json")
@@ -36,9 +36,9 @@ def next_story(used):
 
 
 def make_story(s, used_videos, tmp, target):
-    clips, ids, credit = footage.fetch_each([b[1] for b in s["beats"]], used_videos, tmp)
+    clips, ids, credit, log = footage.fetch_each([b[1] for b in s["beats"]], s["mood"], used_videos, tmp)
     story.render(s, clips, tmp, target)
-    return ids, credit
+    return ids, credit, log
 
 
 def build(tmp, state):
@@ -46,7 +46,7 @@ def build(tmp, state):
     video = pathlib.Path(tmp) / "video.mp4"
     s = next_story(set(state["used_ids"]))
     if s:
-        ids, credit = make_story(s, set(state["used_videos"]), tmp, video)
+        ids, credit, _ = make_story(s, set(state["used_videos"]), tmp, video)
         return s["id"], video, story.caption(s, credit), f"{s['summary_it']}\nFonte: {s['source']}", ids
     s = content.next_scenario(set(state["used_ids"]))
     clips, ids, credit = footage.fetch(s["search_terms"], set(state["used_videos"]), tmp)
@@ -125,11 +125,18 @@ def preview(count="3"):
     used, credits = set(), []
     for s in story.STORIES[:int(count)]:
         with tempfile.TemporaryDirectory() as tmp:
-            ids, credit = make_story(s, used, tmp, (folder / f"{s['id']}.mp4").resolve())
-        used |= set(ids); credits.append(f"{s['id']}: {credit}")
+            ids, credit, log = make_story(s, used, tmp, (folder / f"{s['id']}.mp4").resolve())
+        used |= set(ids); credits += [f"{s['id']}: {credit}", *log, ""]
     (folder / "crediti.txt").write_text("\n".join(credits), encoding="utf-8")
 
 
+def guide_preview(guide_id="debris-hut"):
+    folder = pathlib.Path("previews"); folder.mkdir(exist_ok=True)
+    g = next(x for x in guide.GUIDES if x["id"] == guide_id)
+    with tempfile.TemporaryDirectory() as tmp:
+        guide.render(g, tmp, (folder / f"{g['id']}.mp4").resolve())
+
+
 if __name__ == "__main__":
-    commands = {"generate": generate, "process": process, "preview": preview}
+    commands = {"generate": generate, "process": process, "preview": preview, "guide-preview": guide_preview}
     commands[sys.argv[1]](*sys.argv[2:])

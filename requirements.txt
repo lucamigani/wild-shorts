@@ -1,2 +1,4 @@
 requests>=2.32,<3
 Pillow>=10,<13
+kokoro-onnx>=0.4,<0.6
+numpy>=1.26,<3

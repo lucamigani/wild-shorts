@@ -5,7 +5,7 @@ import unittest
 from unittest import mock
 
 os.environ.update(TELEGRAM_BOT_TOKEN="t", TELEGRAM_CHAT_ID="42", IG_USER_ID="9", IG_ACCESS_TOKEN="x")
-from bot import channels, content, footage, main, story
+from bot import channels, content, footage, guide, main, story
 
 
 class Content(unittest.TestCase):
@@ -40,6 +40,17 @@ class Stories(unittest.TestCase):
         self.assertIsNone(main.next_story({s["id"] for s in story.STORIES}))
 
 
+class Guide(unittest.TestCase):
+    def test_caption_chunks_keep_all_words(self):
+        text = guide.GUIDES[0]["scenes"][1][0]
+        self.assertEqual(" ".join(guide.chunks(text)), text)
+
+    def test_timings_fill_the_scene(self):
+        spans = guide.timings(["one two", "three"], 4.0)
+        self.assertAlmostEqual(spans[-1][1], 4.0)
+        self.assertEqual(spans[0][1], spans[1][0])
+
+
 class Footage(unittest.TestCase):
     def test_pick_smallest_sufficient_mp4(self):
         v = {"video_files": [{"file_type": "video/mp4", "height": 720}, {"file_type": "video/mp4", "height": 1920},
@@ -57,6 +68,21 @@ class Footage(unittest.TestCase):
             found = footage.search("forest")
         self.assertEqual([x[1] for x in found], [2, 1])
         self.assertEqual(found[0][2], "t")
+
+
+    def test_off_topic_tags_rejected(self):
+        self.assertTrue(footage.relevant("sea waves", "ocean, sea, waves, blue"))
+        self.assertFalse(footage.relevant("cougar", "lipstick, makeup, cougar"))
+        self.assertFalse(footage.relevant("cougar", "forest, trees"))
+
+    def test_mood_replaces_off_topic_beat(self):
+        hits = {"cougar": [("p", 1, "u", "a", "lipstick, beauty")], "forest": [("p", 2, "v", "b", "forest, trees")]}
+        with mock.patch.object(footage, "search", side_effect=lambda q: hits[q]), \
+             mock.patch.object(footage, "download"), mock.patch.object(footage, "brightness", return_value=90), \
+             mock.patch.dict(os.environ, {"PIXABAY_API_KEY": "k"}):
+            clips, ids, _, log = footage.fetch_each(["cougar"], ["forest"], set(), tempfile.gettempdir())
+        self.assertEqual(ids, [2])
+        self.assertIn("cougar -> forest", log[0])
 
 
 class Approval(unittest.TestCase):
