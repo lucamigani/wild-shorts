@@ -65,8 +65,7 @@ def picture(prompt, seed, path):
     url = FLUX.format(os.environ["CLOUDFLARE_ACCOUNT_ID"])
     head = {"Authorization": f"Bearer {os.environ['CLOUDFLARE_API_TOKEN']}"}
     for attempt in range(3):
-        r = requests.post(url, headers=head, timeout=120, json={"prompt": LOOK + prompt, "steps": 8, "seed": seed,
-                                                                "width": 768, "height": 1344})
+        r = requests.post(url, headers=head, timeout=120, json={"prompt": LOOK + prompt, "steps": 8})
         if r.ok:
             path.write_bytes(base64.b64decode(r.json()["result"]["image"]))
             return path
