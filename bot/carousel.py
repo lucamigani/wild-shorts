@@ -139,6 +139,18 @@ def by_id(photo_id, path):
     return path
 
 
+def thumbnail(hit):
+    """Return a picture, or None so one bad download doesn't lose the sheet."""
+    for url in (hit.get("webformatURL"), hit.get("largeImageURL")):
+        for attempt in range(3):
+            time.sleep(0.3 + attempt)
+            try:
+                return Image.open(io.BytesIO(requests.get(url, timeout=30).content)).convert("RGB")
+            except (OSError, requests.RequestException):
+                continue
+    return None
+
+
 def rows(c):
     return [(item[0], item[2]) for item in [c["cover"], *c["slides"]]] + [("End", c["end"])]
 
@@ -160,7 +172,9 @@ def sheet(c, out, per_row=6):
                 if i < len(lst) and lst[i]["id"] not in seen and not any(b in lst[i].get("tags", "").lower() for b in BLOCK):
                     seen.add(lst[i]["id"]); hits.append(lst[i])
         for col, hit in enumerate(hits[:per_row]):
-            pic = Image.open(io.BytesIO(requests.get(hit["webformatURL"], timeout=30).content)).convert("RGB")
+            pic = thumbnail(hit)
+            if pic is None:
+                continue
             x, y = side + col * cell_w, cell_h * r
             img.paste(ImageOps.fit(pic, (cell_w - 6, cell_h - 6)), (x, y))
             label = f"{r}{'abcdef'[col]}"

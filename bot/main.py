@@ -146,8 +146,13 @@ def carousel_preview():
 
 def carousel_sheets():
     folder = pathlib.Path("previews"); folder.mkdir(exist_ok=True)
-    keys = {c["id"]: carousel.sheet(c, folder) for c in carousel.CAROUSELS}
-    (folder / "chiavi.json").write_text(json.dumps(keys, indent=1))
+    keys = {}
+    for c in carousel.CAROUSELS:
+        try:
+            keys[c["id"]] = carousel.sheet(c, folder)
+        except Exception as e:
+            print(f"{c['id']}: {e}")
+        (folder / "chiavi.json").write_text(json.dumps(keys, indent=1))
 
 
 if __name__ == "__main__":
