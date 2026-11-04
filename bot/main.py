@@ -138,10 +138,18 @@ def guide_preview(guide_id="debris-hut"):
 
 
 def carousel_preview():
+    chosen = json.loads(pathlib.Path("bot/photos.json").read_text())
     for c in carousel.CAROUSELS:
-        carousel.render(c, "previews")
+        if c["id"] in chosen:
+            carousel.render(c, chosen[c["id"]], "previews")
+
+
+def carousel_sheets():
+    folder = pathlib.Path("previews"); folder.mkdir(exist_ok=True)
+    keys = {c["id"]: carousel.sheet(c, folder) for c in carousel.CAROUSELS}
+    (folder / "chiavi.json").write_text(json.dumps(keys, indent=1))
 
 
 if __name__ == "__main__":
-    commands = {"generate": generate, "process": process, "preview": preview, "guide-preview": guide_preview, "carousel-preview": carousel_preview}
+    commands = {"generate": generate, "process": process, "preview": preview, "guide-preview": guide_preview, "carousel-preview": carousel_preview, "carousel-sheets": carousel_sheets}
     commands[sys.argv[1]](*sys.argv[2:])

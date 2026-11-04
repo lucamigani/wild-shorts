@@ -60,11 +60,12 @@ class Carousel(unittest.TestCase):
 
     def test_render_makes_all_slides(self):
         from PIL import Image
-        def fake(queries, used, path):
-            Image.new("RGB", (800, 1200), (70, 90, 80)).save(path); return "x"
+        def fake(photo_id, path):
+            Image.new("RGB", (800, 1200), (70, 90, 80)).save(path); return path
         c = carousel.CAROUSELS[0]
+        ids = list(range(len(c["slides"]) + 2))
         with tempfile.TemporaryDirectory() as d:
-            carousel.render(c, d, fake)
+            carousel.render(c, ids, d, fake)
             made = sorted(p.name for p in pathlib.Path(d, c["id"]).glob("*.jpg"))
         self.assertEqual(len(made), len(c["slides"]) + 2)
 

@@ -1,6 +1,9 @@
 name: Carousel preview
 on:
   workflow_dispatch:
+    inputs:
+      task:
+        default: carousel-preview
 jobs:
   run:
     runs-on: ubuntu-latest
@@ -10,7 +13,7 @@ jobs:
         with: { python-version: "3.12" }
       - run: sudo apt-get update && sudo apt-get install -y fonts-dejavu-core fonts-league-spartan
       - run: pip install -r requirements.txt
-      - run: python -m bot.main carousel-preview
+      - run: python -m bot.main ${{ inputs.task }}
         env:
           PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
       - uses: actions/upload-artifact@v4
