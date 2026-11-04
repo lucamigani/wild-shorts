@@ -7,7 +7,7 @@ import sys
 import tempfile
 import time
 
-from . import content, footage, guide, render, story
+from . import carousel, content, footage, guide, render, story
 from .channels import Instagram, Telegram
 
 STATE = pathlib.Path("state/state.json")
@@ -137,6 +137,11 @@ def guide_preview(guide_id="debris-hut"):
         guide.render(g, tmp, (folder / f"{g['id']}.mp4").resolve())
 
 
+def carousel_preview():
+    for c in carousel.CAROUSELS:
+        carousel.render(c, "previews")
+
+
 if __name__ == "__main__":
-    commands = {"generate": generate, "process": process, "preview": preview, "guide-preview": guide_preview}
+    commands = {"generate": generate, "process": process, "preview": preview, "guide-preview": guide_preview, "carousel-preview": carousel_preview}
     commands[sys.argv[1]](*sys.argv[2:])

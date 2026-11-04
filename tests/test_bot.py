@@ -1,11 +1,12 @@
 import json
 import os
+import pathlib
 import tempfile
 import unittest
 from unittest import mock
 
 os.environ.update(TELEGRAM_BOT_TOKEN="t", TELEGRAM_CHAT_ID="42", IG_USER_ID="9", IG_ACCESS_TOKEN="x")
-from bot import channels, content, footage, guide, main, story
+from bot import carousel, channels, content, footage, guide, main, story
 
 
 class Content(unittest.TestCase):
@@ -49,6 +50,23 @@ class Guide(unittest.TestCase):
         spans = guide.timings(["one two", "three"], 4.0)
         self.assertAlmostEqual(spans[-1][1], 4.0)
         self.assertEqual(spans[0][1], spans[1][0])
+
+
+class Carousel(unittest.TestCase):
+    def test_every_post_fits_instagram(self):
+        for c in carousel.CAROUSELS:
+            self.assertLessEqual(len(c["slides"]) + 2, 10)
+            self.assertTrue(c["source"])
+
+    def test_render_makes_all_slides(self):
+        from PIL import Image
+        def fake(queries, used, path):
+            Image.new("RGB", (800, 1200), (70, 90, 80)).save(path); return "x"
+        c = carousel.CAROUSELS[0]
+        with tempfile.TemporaryDirectory() as d:
+            carousel.render(c, d, fake)
+            made = sorted(p.name for p in pathlib.Path(d, c["id"]).glob("*.jpg"))
+        self.assertEqual(len(made), len(c["slides"]) + 2)
 
 
 class Footage(unittest.TestCase):
